@@ -1,0 +1,156 @@
+program interpostest
+  USE prec_rkind
+  USE interpos_module
+  implicit none
+  integer, parameter :: nin=30, nout=3000
+  real(rkind) :: xin(nin), yin(nin), yinspl(nin), yinsplpp(nin)
+  real(rkind) :: xout(nout), yout(nout), youtp(nout), youtpp(nout), youtint(nout)
+  integer :: i, ioptder, iextrapol, nbc(2), iflag, icount, icount2, irate, icmax
+  real(rkind) :: tension, tension0, ybc(6), sigma(nin)
+  REAL(RKIND), PARAMETER :: TWOPI=6.283185307179586476925286766559005768394_rkind
+  real(rkind) :: rannumbers(nin), zepsilon
+  integer :: info_time(8), i_msec, nsize_random, i_change_random_seed
+
+  !
+  print *,'% do same test as interpostest case 3'
+  print *,'% sin(x+randn(1,length(x))*epsilon).^2;'
+  ! gets a random number
+  call random_number(rannumbers)
+  print *,'% 1st 5 randoms: '
+  write(*,'(a,1p5e12.4)') '% ',rannumbers(1:5)
+  call date_and_time(VALUES=info_time)
+  write(*,'(a15,8I5)') '% info_time= ',info_time
+  i_msec = 1000 * info_time(7) + info_time(8)
+  call random_seed(nsize_random)
+  print *,'% nsize_random= ',nsize_random
+  i_change_random_seed = 0
+  if (i_change_random_seed.EQ.1) then
+    print *,'% change random seed: ',(i*i_msec,i=1,nsize_random)
+    call random_seed(PUT=(/(i*i_msec,i=1,nsize_random)/))
+  end if
+  call random_number(rannumbers)
+  print *,'% 2nd 5 randoms: '
+  write(*,'(a,1p5e12.4)') '% ',rannumbers(1:5)
+  !
+  ! x-mesh between 0 and 6 pi
+  ! y=sin(x+random*epsilon)^2
+  zepsilon=0.03_rkind;
+  zepsilon=0.05_rkind;
+  ! zepsilon=0.0_rkind;
+  call random_number(rannumbers)
+  do i=1,nin
+    xin(i)=TWOPI*real(i-1,rkind)/real(nin-1,rkind)
+    yin(i)=sin(xin(i))**2 + 2.*(rannumbers(i)-0.5_rkind)*zepsilon
+  end do
+  do i=1,nout
+    xout(i)=TWOPI/2._rkind*(-1._RKIND+3.5_rkind*real(i-1,rkind)/real(nout-1,rkind))
+  end do
+  !
+  ! prepare parameters for interpos
+  ioptder = 3
+  iextrapol = 1
+  nbc = 0
+  ybc = 0.0_rkind
+  ! more complicated option
+  !      nbc(1)=2
+  !      ybc(1)=1._rkind
+  !
+  ! call spline with tension
+  tension = 1.0e-02_rkind
+  ! tension = 3.0e-03_rkind
+  ! tension = 1.0e-06_rkind
+  print *,'% tension= ',tension
+  sigma = tension
+  call system_clock(icount, irate, icmax)
+  write(0,*) ' icount, irate, icmax= ',icount, irate, icmax
+  tension=-1._rkind
+  call interpos(xin,yin,nin,nout,tension,xout,yout,youtp,youtpp,youtint)
+  call system_clock(icount2, irate, icmax)
+  write(0,*) ' icount2, irate, icmax, icount2-icount= ',icount2, irate, icmax, icount2-icount
+  write(0,*) ' dtime = ',real(icount2-icount,rkind) / real(irate,rkind)
+  !
+  print *,'% iflag = ',iflag
+  print *,' in=[ '
+  write(*,'(1p2e25.15)') (xin(i), yin(i), i=1,nin)
+  print *,'];'
+  print *,' out=[ '
+  write(*,'(1p5e25.15)') (xout(i), yout(i), youtp(i), youtpp(i), youtint(i), i=1,nout)
+  print *,'];'
+
+  ! test using splibnd
+  ! first calculated spline function and 2nd der: yinspl and yinsplpp on xin
+  call system_clock(icount)
+  call interpos(xin,yin,yinspl,yinsplpp,nin)
+  call system_clock(icount2)
+  write(0,*) ' icount2-icount, dtime = ',icount2-icount,real(icount2-icount,rkind) / real(irate,rkind)
+  ! Then can calculate spline on any new x value
+  call system_clock(icount)
+  CALL interpos(xin,yinspl,yinsplpp,nin,nout,xout,yout,youtp,youtpp,youtint,33)
+  call system_clock(icount2)
+  write(0,*) ' icount2-icount, dtime = ',icount2-icount,real(icount2-icount,rkind) / real(irate,rkind)
+  !
+  print *,' outsplibnd=[ '
+  write(*,'(1p5e25.15)') (xout(i), yout(i), youtp(i), youtpp(i), youtint(i), i=1,nout)
+  print *,'];'
+  !
+  ! call spline with tension=0
+  tension0=0._rkind
+  sigma=tension0
+  call system_clock(icount, irate, icmax)
+  write(0,*) ' icount, irate, icmax= ',icount, irate, icmax
+  call interpos(xin,yin,nin,nout,tension0,xout,yout,youtp,youtpp,youtint)
+  call system_clock(icount2, irate, icmax)
+  write(0,*) ' icount2, irate, icmax, icount2-icount= ',icount2, irate, icmax, icount2-icount
+  write(0,*) ' dtime = ',real(icount2-icount,rkind) / real(irate,rkind)
+  !
+  print *,'% iflag = ',iflag
+  print *,' out0=[ '
+  write(*,'(1p5e15.6)') (xout(i), yout(i), youtp(i), youtpp(i), youtint(i), i=1,nout)
+  print *,'];'
+  !
+  ! test calls as in comments at top of interpos_module.f90:
+  call interpos(xin,yin,nin,nout,xout=xout,yout=yout)
+  call interpos(xin,yin,nin,nout,tension,xout,yout)
+  call interpos(xin,yin,nin,nout,tension,xout,yout,youtp)
+  call interpos(xin,yin,nin,nout,tension,xout=xout,yout=yout,nbc=nbc,ybc=ybc)
+  call interpos(xin,yin,nin,nout,tension,xout,yout,nbc=nbc,ybc=ybc,option=32)
+  ! end of test calls
+  !
+
+  ! test with periodic conditions
+  ! call spline with tension
+  call system_clock(icount, irate, icmax)
+  write(0,*) ' icount, irate, icmax= ',icount, irate, icmax
+  nbc(1)=-1
+  ybc(1)=xin(nin)-xin(1)
+  sigma=tension
+  call interpos(xin,yin,nin,nout,tension,xout,yout,youtp,youtpp,youtint,nbc=nbc(1),ybc=ybc(1))
+  call system_clock(icount2, irate, icmax)
+  write(0,*) ' icount2, irate, icmax, icount2-icount= ',icount2, irate, icmax, icount2-icount
+  write(0,*) ' dtime = ',real(icount2-icount,rkind) / real(irate,rkind)
+  !
+  print *,'% iflag = ',iflag
+  print *,' outper=[ '
+  write(*,'(1p5e15.6)') (xout(i), yout(i), youtp(i), youtpp(i), youtint(i), i=1,nout)
+  print *,'];'
+  !
+  ! test various interpos forms
+  tension=-1._rkind
+  sigma=tension0
+  call system_clock(icount, irate, icmax)
+  write(0,*) ' icount, irate, icmax= ',icount, irate, icmax
+  call interpos(xin,yin,nin,4._rkind,tension0,yout(1),yscalint=youtint(1),option=43)
+  print *,'% yout(1),youtint(1)= ',yout(1),youtint(1)
+  call interpos(xin,yin,nin,4._rkind,tension0,yout(1),yscalint=youtint(1),option=41)
+  print *,'% yout(1),youtint(1)= ',yout(1),youtint(1)
+  call system_clock(icount2, irate, icmax)
+  write(0,*) ' icount2, irate, icmax, icount2-icount= ',icount2, irate, icmax, icount2-icount
+  write(0,*) ' dtime = ',real(icount2-icount,rkind) / real(irate,rkind)
+  !
+  call interpos(xin,yin,nin,nout,tension,xout,yout,youtp,youtpp,youtint,option=-22)
+  print *,'% iflag = ',iflag
+  print *,' outquad=[ '
+  write(*,'(1p5e15.6)') (xout(i), yout(i), youtp(i), youtpp(i), youtint(i), i=1,nout)
+  print *,'];'
+
+end program interpostest

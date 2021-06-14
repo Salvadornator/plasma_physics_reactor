@@ -1,0 +1,203 @@
+April 7, 2009
+
+   add this file to follow global changes and tags
+   Add just before going to svn version on crppsvn
+   It has interpos.f version for hal and linux64 bits working (with mxfree, etc)
+
+   do after ci of this file:
+   cvs tag interpos_2_0
+
+May 5 2009:
+    cvs2svn
+    using link to interpos_linux64bits.f, compiled and tested on gateway with pgf90
+    tag interpos_2_1 with svn:
+    svn cp file:///home/osauter/SVNREPOS_singles/interpos/trunk file:///home/osauter/SVNREPOS_singles/interpos/tags/interpos_2_1
+
+August 14
+    To get copy on other computers like lac or hal:
+    svn co svn+ssh://osauter@crpppc98.epfl.ch/home/osauter/SVNREPOS_singles/interpos/trunk interpos
+
+August 18
+     tag 2_2: (see README in f90interpos_release for further comments)
+
+     svn cp file:///home/osauter/SVNREPOS_singles/interpos/trunk file:///home/osauter/SVNREPOS_singles/interpos/tags/interpos_2_2 -m"tag version 2_2 with ifort  -O3 -r8 -automatic -xT -parallel prec_rkind.f90 interpos.f90 cbsplgen0.f90 cbsplgenp0.f90 cbsplgen.f90 cbsplgenp.f90 cbfitbnd.f90 splibnd.f90 cbfitper.f90 spliper.f90 spgbtrf_s.f cbspltest_3.f90 OK in f90 and interpostest case 3 ok as well"
+
+     -----------------------------------------------------------------------
+
+     Start combining non-periodic and periodic boundary conditions using nbcleft=-1 or -2 for periodic case into one cbsplgen routine for both matlab and f90
+     Will become version 3_0
+
+
+Sept 16 2009
+     f90 working version with periodic boundary conditions in matlab part as well
+     cp to tags/interpos_3_0 before starting adding integrated results
+
+Sept 25 2009
+     f90 working version in matlab dir with integrated results for bounded conditions as well
+     changed way to find intervals to be faster
+     Start making a full test case in test directory, but 1st tag this version as interpos_3_1
+
+Sept 27 2009
+     f90 versions for all files but top file identical for matlab or f90 version. Test in ./test dir for f90 and matlab working 
+     including periodic boundary conditions, including use of library.
+     Should now create main directory with library files and makefile, and have only top files i f90 or matlab dir.
+     Before, do a tag to 4_0 (new version since has integral in output as well)
+     svn cp file:///home/osauter/SVNREPOS_singles/interpos/trunk file:///home/osauter/SVNREPOS_singles/interpos/tags/interpos_4_0 -m"1st version with integral in output for both matlab and f90 versions"
+
+svn mv prec_rkind.f90 ../interpos_libs
+svn mv cbsplgen0.f90 ../interpos_libs
+svn mv cbsplgenp0.f90 ../interpos_libs
+svn mv cbsplgen.f90 ../interpos_libs
+svn mv cbsplgenp.f90 ../interpos_libs
+svn mv cbfitbnd.f90 ../interpos_libs
+svn mv cbfitper.f90 ../interpos_libs
+svn mv findindices.f90 ../interpos_libs
+svn mv findindicesper.f90 ../interpos_libs
+svn mv splipera.f90 ../interpos_libs
+svn mv splibnda.f90 ../interpos_libs
+svn mv intlinear.f90 ../interpos_libs
+svn mv intquadratic.f90 ../interpos_libs
+svn mv dpgbtrf_s.f90 ../interpos_libs
+svn delete splibnd.f90
+svn delete output.m
+svn delete spgbtrf_s.f90 spgbtrf_s.f spliper.f90 interpos.f90
+svn delete varlaprout2.f90  varlaprout.f90
+cd ../matlab
+svn delete interpos_f90_cbfitbnd.f90 interpos_f90_cbfitper.f90 interpos_f90_cbsplgen0.f90 interpos_f90_cbsplgen.f90 interpos_f90_cbsplgenp0.f90 interpos_f90_cbsplgenp.f90 interpos_f90_findindices.f90 interpos_f90_findindicesper.f90 interpos_f90_splipera.f90 interpos_f90_splibnda.f90 interpos_f90_intlinear.f90 interpos_f90_intquadratic.f90
+
+     Made Makefile with all options ok to make interpos for matlab, to make lib or to make f90_test
+
+     tags this version 4_1 then dump and copy to top crppsvn repository
+
+October 16 2009
+     Version quite general for interpos call with module and overload. Ready for 1st release
+     Tags interpos_5_0
+
+October 18 2009
+     Debugged version now working with pgf90 as well and add f90 test interpostest_profile.f90
+     Tags interpos_5_1
+     svn cp -m"for tag interpos_5_1" http://crppsvn.epfl.ch/repos/osauter/interpos/trunk http://crppsvn.epfl.ch/repos/osauter/interpos/tags/interpos_5_1
+
+October 20 2009
+      Changed tension to be only intent(in), otherwise one cannot give: tension=1._rkind as argument with no obvious error message. So safer like this
+      svn cp -m"for tag interpos_5_2 tension only intent(in)" http://crppsvn.epfl.ch/repos/osauter/interpos/trunk http://crppsvn.epfl.ch/repos/osauter/interpos/tags/interpos_5_2
+
+Nov 7 2009
+     Rm mex file and other bin from svn. Clean some other stuff.
+     Tag to version 5_3:
+     svn cp -m"for tag interpos_5_3 tested with/without lapack in pi/g95 subdir" http://crppsvn.epfl.ch/repos/osauter/interpos/trunk http://crppsvn.epfl.ch/repos/osauter/interpos/tags/interpos_5_3
+
+Nov17 2009
+     Changed CRPP interpos matlab to present version. Found a bug when xout scalar and interpolation linear or quadr, should be taken into account.
+     interpos_matlab_top.f90 was modified and new version active since Nov 20 afternoon.
+     Starting to add eqdsk2D example in f90, and bndfit with periodic bc, need sorting as well for rho(theta)
+
+Jan 20 2010
+     Added interpostest_2Deqdsk.f90 and indexx.f90 (sorting) for full eqdsk transform test including BNDFIT stuff
+     Moved repository from http://crppsvn.epfl.ch/repos/osauter/interpos to http://crppsvn.epfl.ch/repos/interpos
+     Need to do: svn switch --relocate http://crppsvn.epfl.ch/repos/osauter http://crppsvn.epfl.ch/repos/interpos
+     But then moved tags, branches, trunk up one directory and rm interpos/interpos. So need to redo check-out
+     Tag this version: svn cp -m"for tag interpos_5_4, has full f90 for eqdsk with BNDFIT included and new top interpos svn" http://crppsvn.epfl.ch/repos/interpos/trunk http://crppsvn.epfl.ch/repos/interpos/tags/interpos_5_4
+
+March 2 2010
+     for matlab mex part: Check if length of kopt, xin and yin are ok and check if any NaNs are present with isnan from f90
+     Tag  interpos_5_5
+     Tag  interpos_5_5b (added check of length 0 for xin (needs to check each row and col))
+
+March 17 2010
+      for matlab 7.10 compatibility change mxCreateFull to mxCreateDoubleMatrix
+      add deallocate of xout, yout, etc
+      Tag interpos_5_6
+
+March 22 2010
+      Note that version on gateway has minval for default tension everywhere but not present version. Check and modify:
+      make interposg95 (to remake lib)
+      make interpostest_f90_eqdsk (to make interpostest_f90_eqdsk)
+      cd ../matlab/example (to have file eqdsksigns.31837t1.0000)
+      ../../interpos_libs/interpostest_f90_eqdsk > aaa_eqdsk.m
+      matlab -nodesktop
+      >> aaa_eqdsk
+      >> run ../../f90interpos_release/example/aaaplot_eqdsk.m (to plot data read with aaa_eqdsk)
+
+      It shows that had to use now mean(dx) otherwise there is a drho very small and the effective default tensio is too small.
+      Add comments into interpos_module.f90
+
+      tag interpos_5_7
+      svn cp -m"for tag interpos_5_7 clarify default tension is mean(dx)" http://crppsvn.epfl.ch/repos/interpos/trunk http://crppsvn.epfl.ch/repos/interpos/tags/interpos_5_7
+
+March 31 2010
+      rm "return" if NaNs in xin or yin, so it returns NaNs
+      Clean-up interpostest3 and comments in interpos_module, cleanup intent(in) or out
+      tag interpos_5_8
+
+April/June 2010
+      Added 32bits version, tested and works => tag version 5_9
+      Remove bug using ybc(3) or more when only ybc(1:2) given => tag version 5_10
+
+Sept 2011
+      Automatic choice of linear or quadratic interpolation if less than 4 points are given
+      Some additional checks if inputs have 0 length
+      tag interpos_5_11
+      svn cp -m"for tag interpos_5_11 some minor bugs corrected and checks better for validity of inputs" https://crppsvn.epfl.ch/repos/interpos/trunk https://crppsvn.epfl.ch/repos/interpos/tags/interpos_5_11
+
+Nov 2011
+      Add interface for intlinear and intquadratic in matlab mex file (required for new g95 version)
+
+Dec 2011
+      Add checks if multiple x in inputs, avoid these input points automatically. Might alter expected xout
+      Add interpos_source.f90 target in make file to have direct link with CHEASE or any other standalone codes
+      Since changed interface from
+   SUBROUTINE interpos_defxscal(X,Y,N,tension,xscal,yscal,yscalp,yscalpp,yscalint,nbcscal,ybcscal,sigma,option,info)
+      to
+   SUBROUTINE interpos_defxscal(X,Y,N,xscal,tension,yscal,yscalp,yscalpp,yscalint,nbcscal,ybcscal,sigma,option,info)
+      at revision 173 to 174, should have changed main tag number. Do it now:
+      tag interpos_6_0
+      svn cp -m"for tag interpos_6_0 added many diff checks and has defxscal arguments inverted since rev 174" https://crppsvn.epfl.ch/repos/interpos/trunk https://crppsvn.epfl.ch/repos/interpos/tags/interpos_6_0
+
+Dec 13,2011
+      Add tau(x) option with cubic spline also to periodic boundary conditions
+      tag interpos_6_1
+      svn cp -m"Add tau(x) option with cubic spline also to periodic boundary conditions" https://crppsvn.epfl.ch/repos/interpos/trunk https://crppsvn.epfl.ch/repos/interpos/tags/interpos_6_1
+
+April 18, 2012
+      Added interfaces in above chanegs. Now removed bug in intquadratic, forgetting to define ALFA parameter. Set to 1.0
+      tag interpos_6_2
+      svn cp -m"Ready for tag interpos_6_2, rm bug in intquadratic.f90 and related files" https://crppsvn.epfl.ch/repos/interpos/trunk https://crppsvn.epfl.ch/repos/interpos/tags/interpos_6_2
+
+Jan 30, 2013
+      bug in calling periodic with yin_neff fixed, was problem if more than last point was removed
+      tag interpos_6_3
+      svn cp -m"tag interpos_6_3, rm bug calling periodic with yin_neff" https://crppsvn.epfl.ch/repos/interpos/trunk https://crppsvn.epfl.ch/repos/interpos/tags/interpos_6_3
+
+July 2013
+      rm -parallel in ifort compilation and checked in above yin_eff bug as well. Tag 6_4
+      svn cp -m"tag interpos_6_4, rm bug calling periodic with yin_neff and rm -parallel in ifort library for fc2k" https://crppsvn.epfl.ch/repos/interpos/trunk https://crppsvn.epfl.ch/repos/interpos/tags/interpos_6_4
+
+August 2013
+      Add check if pxin is ascending order in cbsplgnp as well. Found problems for matlab mex file which seems to be due to "intent" statements and large arrays. So tag version just before and just after removing all intent's
+     svn cp -m"tag interpos_6_5,  Add check if pxin is ascending order in cbsplgnp as well and just before removing all intent statements which will lead to tag 7_1" https://crppsvn.epfl.ch/repos/interpos/trunk https://crppsvn.epfl.ch/repos/interpos/tags/interpos_6_5 
+
+     Removed all intent statements, compiled on lac with default (g95) and checked with write_pgyro and interpostest_time which have long arrays (on lac5) and interpostest in example. All are fine
+     >> interpostest_time
+     Elapsed time is 0.434841 seconds.
+     Elapsed time is 0.985274 seconds.
+     Elapsed time is 0.393931 seconds.
+     Elapsed time is 0.407663 seconds.
+     /home/sauter/interpos_develop/matlab/interpos.mexa64
+     Version tagged 7_1:
+     svn cp -m"tag interpos_7_1,  same as 6_5 but without intent statements" https://crppsvn.epfl.ch/repos/interpos/trunk https://crppsvn.epfl.ch/repos/interpos/tags/interpos_7_1
+
+March 2014
+     Checked on AUG with gfortran, minor fixes, checked make interpostest_f90_eqdsk as well (should change example interpostest to have only calls to interpos). Ready for tag 7.2
+     svn cp -m"tag interpos_7_2,  minor fixes checked with gfortran at IPP" https://crppsvn.epfl.ch/repos/interpos/trunk https://crppsvn.epfl.ch/repos/interpos/tags/interpos_7_2
+
+October 2014
+     Bug in old function FCDCD... found. This is used for extrapolation. 
+     Debugged also options for extrapolation, there were some inconsistencies with manual
+     Version tagged 8.1 (since major bug fixed)
+     svn cp -m"tag interpos_8_1,  "bug fixed for extrapolation in particular FCDCD, also in CHEASE" https://crppsvn.epfl.ch/repos/interpos/trunk https://crppsvn.epfl.ch/repos/interpos/tags/interpos_8_1
+
+November 2014
+     Now only gfortran on gateway (no pgf95, pgf90), so modify Make_all_lib and Makefile and add gfortran_libs directory
+     Version tagged 8.2
+     svn cp -m"tag interpos_8_2,  Now only gfortran on gateway (no pgf95, pgf90), so modify Make_all_lib and Makefile and add gfortran_libs directory" https://crppsvn.epfl.ch/repos/interpos/trunk https://crppsvn.epfl.ch/repos/interpos/tags/interpos_8_2

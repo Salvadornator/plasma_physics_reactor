@@ -1,0 +1,401 @@
+Apr 16 2002
+
+Try to do mex file for interpos.f
+
+File matlab6/mex/interpos.f on sun5 same as JET one (except malloc statement with %val)
+
+ftp file to matlab6/mex/interpos.f
+
+cd matlab6/mex
+matlab -v 12 -nojvm
+mex -v -fortran interpos.f
+
+% output: %%%%%%%%%%%%%%%%%%%
+f77 -c  -I/afs/ipp/common/soft/matlab_12/extern/include -I/afs/ipp/common/soft/matlab_12/simulink/include -dalign -KPIC  -O interpos.f
+-> /usr/ccs/bin/ld  -G -M /afs/ipp/common/soft/matlab_12/extern/lib/sol2/fexport.map -o interpos.mexsol  interpos.o /afs/ipp/common/soft/matlab_12/extern/lib/sol2/version4.o  
+%%%%%%%%%%%%%%%%%%%%%%%%%
+
+testing:
+xx=[1 2 3 4 5 6];
+yy=[1.23 2.93 2.234 4.23 2.45 1.35 ];
+aa=interpos(13,xx,yy,[0:0.2:7]);
+figure
+plot(xx,yy)
+hold on
+plot([0:0.2:7],aa,'r--')
+
+
+after interpos, got message:
+Unable to load mex file: /afs/ipp/u/osauter/matlab6/mex/interpos.mexsol.
+ld.so.1: /afs/ipp/common/soft/matlab_12/bin/sol2/matlab: fatal: relocation error: file /afs/ipp/u/osauter/matlab6/mex/interpos.mexsol: symbol __s_wsle_pv: referenced symbol not found
+??? Invalid MEX-file
+
+
+Trying from matlab (thus matlab 5.3.1)
+got:
+mex -v -fortran interpos.f
+-> f77 -c  -I/afs/ipp/common/soft/matlab_5.3.1/extern/include -I/afs/ipp/common/soft/matlab_5.3.1/simulink/include -dalign -KPIC  -O interpos.f
+(much longer => good sign?)
+-> /usr/ccs/bin/ld  -G -M /afs/ipp/common/soft/matlab_5.3.1/extern/lib/sol2/fexport.map -o interpos.mexsol  interpos.o /afs/ipp/common/soft/matlab_5.3.1/extern/lib/sol2/version4.o  
+
+same message:
+Unable to load mex file: /afs/ipp/home/o/osauter/matlab6/mex/interpos.mexsol.
+ld.so.1: /afs/ipp/common/soft/matlab_5.3.1/bin/sol2/matlab: fatal: relocation error: file /afs/ipp/home/o/osauter/matlab6/mex/interpos.mexsol: symbol __s_wsle_pv: referenced symbol not found
+??? Invalid MEX-file
+
+bringing version from sun5
+ftp binary interpos.mexsol
+works fine with both matlab 5.3.1 and 6 (-v 12)
+
+Trying to compile it again on crppsun5 in /tmp
+>> mex -v -fortran interpos.f
+-> f77 -c  -I/usr/local/matlab/extern/include -I/usr/local/matlab/simulink/include -dalign -KPIC  -O interpos.f
+-> /usr/ccs/bin/ld  -G -M /usr/local/matlab/extern/lib/sol2/fexport.map -o interpos.mexsol  interpos.o /usr/local/matlab/extern/lib/sol2/version4.o  
+
+does not work (segmentation violation)
+
+from unix shell, trying:
+% fmex -v interpos.f
+-> f77 -c  -I/export/soft/matlab-5.3.1/extern/include -I/export/soft/matlab-5.3.1/simulink/include -dalign -KPIC  -O interpos.f
+-> /usr/ccs/bin/ld  -G -M /export/soft/matlab-5.3.1/extern/lib/sol2/fexport.map -o interpos.mexsol  interpos.o /export/soft/matlab-5.3.1/extern/lib/sol2/version4.o  
+
+same
+
+but had IBM definition of malloc: malloc_f = malloc(%val(nbytes))
+trying SUN def, without %val()
+
+works
+
+redoes it from within matlab
+works fine as well
+
+
+-----------------------------------------------------------------------
+
+April 2008
+
+compiling on linux crpppc361 64 bits
+Had to change integer to integer*8 for all integer related to pointers
+Had to use ifort for compiler since uses pointer ala f77:
+In matlab:
+>>mex -fortran -v  'FC=ifort' interpos.f
+
+Version interpos_linux64bits.f worked
+
+
+-----------------------------------------------------------------------
+Feb 2009
+
+crpppc70 64 bits
+
+cp -pr interpos.f interpos_pc70_32bit.f
+cp -pr interpos_linux64bits.f interpos.f
+
+matlab
+
+>> mex -fortran -v  'FC=ifort' 'FOPTIMFLAGS=-O3 -r8' interpos.f
+
+ne marche pas, le teste donne des 0
+
+depuis unix:
+$ mex -v interpos.f permet de voir qu-il faut faire:
+
+ifort -r8 -c  -I/usr/local/matlab76/extern/include -I/usr/local/matlab76/simulink/include -fexceptions -fPIC -fno-omit-frame-pointer  -DMX_COMPAT_64 -O  "interpos.f"
+
+ifort -O -pthread -shared -Wl,--version-script,/usr/local/matlab76/extern/lib/glnxa64/fexport.map -Wl,--no-undefined -o  "interpos.mexa64"   "interpos.o"  "/usr/local/matlab76/extern/lib/glnxa64/version4.o"  -Wl,-rpath-link,/usr/local/matlab76/bin/glnxa64 -L/usr/local/matlab76/bin/glnxa64 -lmx -lmex -lmat -lm
+
+donne aussi interpos.mexa64
+
+mais
+x=linspace(0,1,100);
+y=x.^2;
+[a,b]=interpos(13,x,y);
+
+donne des 0 dans a
+
+En fait found bug in interpos_linux64bits.f, noutint8 not defined if xout not given!!!
+
+thus
+
+[a,b]=interpos(13,x,y,x);
+
+works
+
+Adding noutin8=int(nout,8) after nout=nin and using more specific compile options:
+
+>> mex -fortran -v  'FC=ifort' 'FOPTIMFLAGS=-O3 -r8' interpos.f
+
+works
+
+From -v shows that uses: 
+arguments          =  -DMX_COMPAT_32
+
+For 64 should use:?
+>> mex -fortran -v  'FC=ifort' 'FOPTIMFLAGS=-O3 -r8' -DMX_COMPAT_64 interpos.f
+
+so better to do on unix line:
+ifort -c  -I/usr/local/matlab76/extern/include -I/usr/local/matlab76/simulink/include -fexceptions -fPIC -fno-omit-frame-pointer  -DMX_COMPAT_64 -O3 -r8  "interpos.f"
+ifort -O -pthread -shared -Wl,--version-script,/usr/local/matlab76/extern/lib/glnxa64/fexport.map -Wl,--no-undefined -o  "interpos.mexa64"  interpos.o  "/usr/local/matlab76/extern/lib/glnxa64/version4.o"  -Wl,-rpath-link,/usr/local/matlab76/bin/glnxa64 -L/usr/local/matlab76/bin/glnxa64 -lmx -lmex -lmat -lm
+
+-----------------------------------------------------------------------
+
+
+20090312
+
+using above ifort in unix on crpppc70 does not work, but wthin matlab:
+
+>>  mex -fortran -v  'FC=ifort' 'FOPTIMFLAGS=-O3 -r8' interpos.f
+
+
+does work (on pc98 also). It shows:
+
+ ifort -O -pthread -shared -Wl,--version-script,/usr/local/matlab76/extern/lib/glnxa64/fexport.map -Wl,--no-undefined -o  "interpos.mexa64"  interpos.o  "/usr/local/matlab76/extern/lib/glnxa64/version4.o"  -Wl,-rpath-link,/usr/local/matlab76/bin/glnxa64 -L/usr/local/matlab76/bin/glnxa64 -lmx -lmex -lmat -lm
+
+ifort -c  -I/usr/local/matlab76/extern/include -I/usr/local/matlab76/simulink/include -fexceptions -fPIC -fno-omit-frame-pointer  -DMX_COMPAT_32 -O3 -r8  "interpos.f"
+
+
+on hal:
+
+add call free(...) in the same way on _hal version, then:
+cp -pr interpos_hal.f interpos.f
+>> mex -v -fortran interpos.f
+
+creates interpos_hal.mexrs6
+
+test:
+a=[1:2000];b=a.^1.7;c=randn(1,14000000)*500000;tic;d=interpos(-43,a,b,c,3.5);toc
+1.89s
+
+
+------------------------------------------------------------------------
+
+
+April 7, 2009:
+
+goal:
+merging interpos cvs back sun5 one (did by mistake cvs on crpppc98 but with not full version)
+
+then go to svn
+
+
+1)
+on crpppc98:
+
+cd ~/INTERPOS
+cvstat
+(ok verified version pc98 up-to-date)
+
+(and verified various versions up to dates)
+
+cd /tmp/sauter
+echo $CVSROOT
+:ext:sauter@crppsun5.epfl.ch:/users/sauter/CVSROOT
+cvs co interpos
+
+cd interpos
+cd matlab
+diff . ~/INTERPOS/matlab/ > ../../oo  # to get diff with crppp98 version
+
+from oo:
+actually had old values
+so pointing back to crppsun5 cvsroot seems ok
+then cvs update
+cd /tmp/sauter/interpos/matlab
+diff . ~/INTERPOS/matlab/ > ../../oo2
+
+ok no diff indeed
+
+cvs rm interpos.f (should be locally linked to correct .f)
+
+so on hal:
+ln -s interpos_hal.f interpos.f
+
+on pc70:
+ln -s interpos_linux64bits.f interpos.f
+
+
+-----------------------------------------------------------------------
+
+on gateway:
+pgf90 -c -I/afs/efda-itm.eu/project/switm/matlab/extern/include -I/afs/efda-itm.eu/project/switm/matlab/simulink/include -DMX_COMPAT_64 -O3 -r8 -fPIC interpos.f
+
+
+pgf90 -O -shared -Wl,--version-script,/afs/efda-itm.eu/project/switm/matlab/extern/lib/glnxa64/fexport.map -Wl,--no-undefined -o "interpos.mexa64" interpos.o "/afs/efda-itm.eu/project/switm/matlab/extern/lib/glnxa64/version4.o" -Wl,-rpath-link,/afs/efda-itm.eu/project/switm/matlab/bin/glnxa64 -L/afs/efda-itm.eu/project/switm/matlab/bin/glnxa64 -lmx -lmex -lmat -lm
+
+-----------------------------------------------------------------------
+(from ../f90../README file continues for matlab part here)
+Now tries to create interpos_f90.f90 from interpos_linux64bits.f but in f90
+
+dislocate file interpos_linux64bits.f into parts to change routines by routines in f90
+interpos_f90_make concatenates back the files into interpos_f90all.f90
+
+- file interpos_f90_spgbtrf.f is essentially the same as ../f90interpos_release/spgbtrf_s.f excepts for real*8, implicit nones and some use of nel
+  Thus adds the nel use in ../f90interpos_release/spgbtrf_s.f90 as well (although is not put every where there is a 1 in arguments of a routine call)
+  Now can link:
+     ln -s ../f90interpos_release/spgbtrf_s.f90 .
+  and change to spgbtrf_s.f90 in interpos_f90_make
+
+- file: interpos_f90_cbsplgenrid.f90
+    Essentially the same except using malloc instead of ALLOCATE in matlab version
+    Change interpos_f90_cbsplgenrid.f90 to f90 style (! and continuation lines and RKIND)
+    mv interpos_f90_cbsplgenrid.f90 interpos_f90_cbsplgen0.f90 for consistency
+
+- file interpos_f90_cbsplgen.f90
+   after conversion they are exactly the same, so make link:
+   rm interpos_f90_cbsplgen.f90
+   ln -s ../f90interpos_release/cbsplgen.f90 interpos_f90_cbsplgen.f90
+
+- file interpos_f90_cbfitbnd.f90
+   after conversion very similar to cbfitbnd.f90
+
+- file interpos_f90_splibnd.f90
+   Exactly same as ../f90interpos_release/splibnd.f90
+   EXCEPT  ALFA WAS 0. IN MATLAB VERSION AND IS 1. IN CODE VERSION. SET IT TO 1 (TO BE CHECKED)
+   rm interpos_f90_splibnd.f90
+   ln -s ../f90interpos_release/splibnd.f90 interpos_f90_splibnd.f90
+
+- file interpos_f90_copy8tor.f90
+   in fact is not used anymore since all in real*8, rm from interpos_f90_make
+   rm interpos_f90_copy8tor.f90
+
+- file interpos_f90_malloc.f90
+   only integers so keep as such except comments with "!"
+
+- file interpos_f90_top.f90
+   change to f90 style for comments etc
+   keep integer and integer*8 as such but transform to real(rkind)
+
+- file interpos_f90_intlinear.f90
+   change to f90 style for comments and continuation line, indent file
+
+- file interpos_f90_parint.f90
+   change to f90 style for comments and continuation line, indent file
+
+- file interpos_f90_cbsplgen0.f90
+   was done above from genrid.f90 but still did indentation
+
+
+did ./interpos_f90_make after cp interpos_f90all.f90 interpos_f90all.f90_f77
+
+matlab
+>> mex interpos_f90all.f90
+
+
+svn ci various files and interpos_f90_make. Did test file for interpos_f90all
+version with periodic boundary conditions in matlab working as well and tested
+tags this working version tags/interpos_3_0 before add integral
+
+
+-----------------------------------------------------------------------
+Sept 27 2009
+All seems working in both matlab and f90 part. In matlab with int option.
+Now include int option in f90 and also compare files between matlab/interpos_f90_xxx.f90 and f90interpos_release/xxx.f90
+In both dir, test directory gives similar test for case 3 and has case 4 and 5 for matlab case ready.
+
+f90 tested with lapack from compiler lib and using *.o as libinterpos.a for interpostest.f90
+Needs to check now mex interpos.f90 with lapack lib (change sgb.. to dgb.. in cbfitper and cbfitbnd)
+
+ifort -c  -I/usr/local/matlab-7.7.0/extern/include -I/usr/local/matlab-7.7.0/simulink/include -fexceptions -fPIC -fno-omit-frame-pointer  -DMX_COMPAT_32 -O  "interpos.f90"
+
+ ifort -O -pthread -shared -Wl,--version-script,/usr/local/matlab-7.7.0/extern/lib/glnxa64/fexport.map -Wl,--no-undefined -o  "interpos.mexa64"  interpos.o  "/usr/local/matlab-7.7.0/extern/lib/glnxa64/version4.o"  -Wl,-rpath-link,/usr/local/matlab-7.7.0/bin/glnxa64 -L/usr/local/matlab-7.7.0/bin/glnxa64 -LhBclmx -lmex -lmat -lm
+
+from 
+g95:
+mex -v FLIBS='-Wl,-rpath-link,/usr/local/matlab-7.7.0/bin/glnxa64 -L/usr/local/matlab-7.7.0/bin/glnxa64 -lmx -lmex -lmat -lm' interpos.f90
+
+ g95 -c  -I/usr/local/matlab-7.7.0/extern/include -I/usr/local/matlab-7.7.0/simulink/include -fexceptions -fPIC -fno-omit-frame-pointer  -DMX_COMPAT_32 -O  "interpos.f90"
+
+-> g95 -O -pthread -shared -Wl,--version-script,/usr/local/matlab-7.7.0/extern/lib/glnxa64/fexport.map -Wl,--no-undefined -o  "interpos.mexa64"  interpos.o  "/usr/local/matlab-7.7.0/extern/lib/glnxa64/version4.o"  -Wl,-rpath-link,/usr/local/matlab-7.7.0/bin/glnxa64 -L/usr/local/matlab-7.7.0/bin/glnxa64 -lmx -lmex -lmat -lm
+
+idem
+mex -v interpos.f90
+ g95 -c  -I/usr/local/matlab-7.7.0/extern/include -I/usr/local/matlab-7.7.0/simulink/include -fexceptions -fPIC -fno-omit-frame-pointer  -DMX_COMPAT_32 -O  "interpos.f90"
+
+-> g95 -O -pthread -shared -Wl,--version-script,/usr/local/matlab-7.7.0/extern/lib/glnxa64/fexport.map -Wl,--no-undefined -o  "interpos.mexa64"  interpos.o  "/usr/local/matlab-7.7.0/extern/lib/glnxa64/version4.o"  -Wl,-rpath-link,/usr/local/matlab-7.7.0/bin/glnxa64 -L/usr/local/matlab-7.7.0/bin/glnxa64 -lmx -lmex -lmat -lm
+
+
+mex -v FLIBS='-Wl,-rpath-link,/usr/local/matlab-7.7.0/bin/glnxa64 -L/usr/local/matlab-7.7.0/bin/glnxa64 -lmx -lmex -lmat -lm -lmwlapack' interpos.f90
+
+ok working with lapack and also with f90 with g95
+
+Continue comapring files:
+diff interpos_f90_cbfitbnd.f90 ../f90interpos_release/cbfitbnd.f90 => identical
+diff interpos_f90_cbfitper.f90 ../f90interpos_release/cbfitper.f90 => identical
+diff interpos_f90_cbsplgen0.f90 ../f90interpos_release/cbsplgen0.f90 => identical
+diff interpos_f90_cbsplgen.f90 ../f90interpos_release/cbsplgen.f90 => identical
+diff interpos_f90_cbsplgenp0.f90 ../f90interpos_release/cbsplgenp0.f90  => identical   (Note should give back pynew and not deallocate)
+diff interpos_f90_cbsplgenp.f90 ../f90interpos_release/cbsplgenp.f90  => identical
+cp -pr interpos_f90_findindices.f90 ../f90interpos_release/findindices.f90
+cp -pr interpos_f90_findindicesper.f90 ../f90interpos_release/findindicesper.f90
+cp -pr interpos_f90_splipera.f90 ../f90interpos_release/splipera.f90
+cp -pr interpos_f90_splibnda.f90 ../f90interpos_release/splibnda.f90
+cp -pr interpos_f90_intlinear.f90 ../f90interpos_release/intlinear.f90
+cp -pr interpos_f90_parint.f90 ../f90interpos_release/intquadratic.f90
+
+
+
+Testing at JET March 2013
+
+With ifort, has to declare NKIN as integer before used in dimensions => interpos_jet.f90
+
+Then could compile with (by hand since inside matlab mex -v some options are not correct:
+
+ifort -c  -I/usr/local/depot/MATLAB/Matlabr14SP2/extern/include -I/usr/local/depot/MATLAB/Matlabr14SP2/simulink/include -fPIC -O interpos_jet.f90
+
+ifort -O -pthread -shared  -Wl,--version-script,/usr/local/depot/MATLAB/Matlabr14SP2/extern/lib/glnx86/fexport.map -o interpos_jet.mexglx  interpos_jet.o /usr/local/depot/MATLAB/Matlabr14SP2/extern/lib/glnx86/version4.o  -Wl,-rpath-link,/usr/local/depot/MATLAB/Matlabr14SP2/bin/glnx86 -L/usr/local/depot/MATLAB/Matlabr14SP2/bin/glnx86 -lmx -lmex -lmat -lm 
+
+But then in matlab:
+
+>> ab=interpos([ 1     2     3     4     5],[ 2     4     6     8    10],-0.1);
+??? Invalid MEX-file '/home/jgraves/Sauter/interpos/interpos_jet.mexglx': /usr/local/lib/libunwind.so.5: undefined symbol: _intel_fast_memcpy.
+
+same with:
+>> mex interpos_jet.f90  % working now with default compiler
+
+however:
+
+which interpos
+/home/dhow/matlab/sawteeth/interpos.mexglx
+>> ab=interpos(13,[ 1     2     3     4     5],[ 2     4     6     8    10],-0.1)
+
+ab =
+
+     2     4     6     8    10
+
+=======================================================================
+
+July 2013 on IPP gateway:
+
+>> mex  FC=g95 interpos.f90  % works
+>> interpostest_time
+Elapsed time is 0.494361 seconds.
+Elapsed time is 1.248172 seconds.
+Elapsed time is 0.470117 seconds.
+Elapsed time is 0.492672 seconds.
+
+>> run example/interpostest
+
+ran fine
+
+
+=======================================================================
+On lac 5, mex interpos.f90 does not work, nor mex FC=ifort interpos.f90 (pthread problem which is not solve removing it)
+mex FC=g95 does not work on lac5, matlab800 since g95 not found
+
+On lac2:
+
+>> mex -v interpos.f90, does work and uses:
+g95 -c  -I/usr/local/matlab710/extern/include -I/usr/local/matlab710/simulink/include -fexceptions -fPIC -fno-omit-frame-pointer  -DMX_COMPAT_32 -O  "interpos.f90"
+
+g95 -O -pthread -shared -Wl,--version-script,/usr/local/matlab710/extern/lib/glnxa64/fexport.map -Wl,--no-undefined -o  "interpos.mexa64"  interpos.o  -Wl,-rpath-link,/usr/local/matlab710/bin/glnxa64 -L/usr/local/matlab710/bin/glnxa64 -lmx -lmex -lmat -lm
+
+
+>> mex -v FC=ifort interpos.f90 also works and does:
+ ifort -c  -I/usr/local/matlab710/extern/include -I/usr/local/matlab710/simulink/include -fexceptions -fPIC -fno-omit-frame-pointer  -DMX_COMPAT_32 -O  "interpos.f90"
+
+and
+
+ifort -O -pthread -shared -Wl,--version-script,/usr/local/matlab710/extern/lib/glnxa64/fexport.map -Wl,--no-undefined -o  "interpos.mexa64"  interpos.o  -Wl,-rpath-link,/usr/local/matlab710/bin/glnxa64 -L/usr/local/matlab710/bin/glnxa64 -lmx -lmex -lmat -lm
+
+The mex file then works on lac5, matlab800...
+

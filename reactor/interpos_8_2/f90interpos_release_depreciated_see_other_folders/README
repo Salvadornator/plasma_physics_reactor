@@ -1,0 +1,132 @@
+f90 files to use cubic spline with tension
+
+also test program: cbspltest.f90
+
+To obtain module:
+
+f90 -c prec_rkind.f90
+f90 -c interpos.f90
+
+Then, using system (on the suns) LAPACK double precision routines:
+f90 interpos.o cbspltest.f90 -xlic_lib=sunperf
+a.out > output.m
+
+If LAPACKroutines not available, they are in varlaprout2.f90 varlaprout.f90:
+f90 varlaprout2.f90 varlaprout.f90 interpos.o cbspltest.f90  (in that order)
+a.out > output.m
+
+in matlab:
+output  % gets variables: in, out, outsplibnd
+plot(in(:,1),in(:,2),'*-')
+hold on
+plot(out(:,1),out(:,2),'r-')
+plot(outsplibnd(:,1),outsplibnd(:,2),'g--')
+plot(out(:,1),out(:,3),'r-') % etc
+
+
+-----------------------------------------------------------------------
+to compile cbspltest.f90
+
+cd /home/osauter/interpos_svn/f90interpos_release
+mkdir ../test
+cp -pr cbspltest.f90 prec_rkind.f90 interpos.f90 cbsplgen0.f90 cbsplgen.f90 cbfitbnd.f90 splibnd.f90 ../test
+
+cd ../test
+ifort  -O3 -r8 -automatic -xT -parallel prec_rkind.f90 interpos.f90 cbsplgen0.f90 cbsplgen.f90 cbfitbnd.f90 splibnd.f90 cbspltest.f90
+
+missing lapack routines...
+
+cp -pr ~/ROUTINES/spgbtrf_s.f .
+
+ifort  -O3 -r8 -automatic -xT -parallel prec_rkind.f90 interpos.f90 cbsplgen0.f90 cbsplgen.f90 cbfitbnd.f90 splibnd.f90 spgbtrf_s.f cbspltest.f90
+
+changing dgbtrf to sgbtrf in cbfitbnd.f90
+
+works, then:
+
+./a.out >> aaa.m
+matlab -nodesktop
+aaa
+plot(in(:,1),in(:,2))
+hold on
+plot(out(:,1),out(:,2),'r--')
+plot(outsplibnd(1:60:end,1),outsplibnd(1:60:end,2),'k*')
+
+on hal needed to do:
+xlf90 -O0 -qtune=auto -qfixed -qsuffix=f=f -c -qrealsize=8 spgbtrf_s.f
+to get double precision and compile separately spgbtrf_s.f since not f90
+then
+xlf90 -O3 -qtune=auto -qalign=4k -qdpc -q strict -qflag=E:E -qfree -qsuffix=f=f90 prec_rkind.f90 interpos.f90 cbsplgen0.f90 cbsplgen.f90 cbfitbnd.f90 splibnd.f90 cbspltest.f90 spgbtrf_s.o
+
+and was ok as well as pc98 and pc70
+
+-----------------------------------------------------------------------
+cbspltest_3.f90: to get same test as interpostest within matlab:
+(on pc98)
+
+ifort  -O3 -r8 -automatic -xT -parallel -c prec_rkind.f90 interpos.f90 cbsplgen0.f90 cbsplgen.f90 cbfitbnd.f90 splibnd.f90 cbspltest_3.f90 spgbtrf_s.f
+ifort  -O3 -r8 -automatic -xT -parallel prec_rkind.o interpos.o cbsplgen0.o cbsplgen.o cbfitbnd.o splibnd.o cbspltest_3.f90 spgbtrf_s.o
+
+OK, with
+./a.out > aaa.m
+>>aaaplot
+does compare with interpostest
+
+Adding periodic
+
+divide BNDFIT/cbsplgenp.f into 3 files: cbfitper.f spliper.f and cbsplgenp.f to have them separate add also cbsplgenp0.f as for cbsplgen
+Change all these into f90
+
+ifort  -O3 -r8 -automatic -xT -parallel -c cbfitper.f90 spliper.f90 cbsplgenp0.f90 cbsplgenp.f90
+ifort  -O3 -r8 -automatic -xT -parallel prec_rkind.o interpos.o cbsplgen0.o cbsplgen.o cbfitbnd.o splibnd.o spgbtrf_s.o cbfitper.o spliper.o cbsplgenp0.o cbsplgenp.o cbspltest_3.f90
+
+./a.out > bbb.m
+>> bbbplot
+WORKS but needs to give 1:n-1 points, that is without 1+periodic point (redundant). Should do that automatically and combine all options next
+
+
+ifort  -O3 -r8 -automatic -xT -parallel prec_rkind.f90 interpos.f90 cbsplgen0.f90 cbsplgenp0.f90 cbsplgen.f90 cbsplgenp.f90 cbfitbnd.f90 splibnd.f90 cbfitper.f90 spliper.f90 spgbtrf_s.f cbspltest_3.f90
+./a.out > bbb.m
+
+Checked that cbsplgenp.f90 cbfitper.f90 spliper.f90 together make gen_per.f from ROUTINES... or CHEASE/BNDFIT except now in f90
+
+Need to still check if uses exponential or tau(k) array for tension
+
+first svn ci with stuff as is now on August 18 and tag version before putting non-periodic and periodic ones together:
+
+svn ci -m"both gen and genp checked in f90 on pc98 with cbspltest_3.f90 and interpostest from file:///home/osauter/SVNREPOS_singles/interpos in ~/interpos_svn"
+
+then
+
+tag 2_2:
+
+svn cp file:///home/osauter/SVNREPOS_singles/interpos/trunk file:///home/osauter/SVNREPOS_singles/interpos/tags/interpos_2_2 -m"tag version 2_2 with ifort  -O3 -r8 -automatic -xT -parallel prec_rkind.f90 interpos.f90 cbsplgen0.f90 cbsplgenp0.f90 cbsplgen.f90 cbsplgenp.f90 cbfitbnd.f90 splibnd.f90 cbfitper.f90 spliper.f90 spgbtrf_s.f cbspltest_3.f90 OK in f90 and interpostest case 3 ok as well"
+
+-----------------------------------------------------------------------
+
+Start combining non-periodic and periodic boundary conditions using nbcleft=-1 or -2 for periodic case into one cbsplgen routine for both matlab and f90
+Will become version 3_0
+
+In order to combine, it is best to see how it would be combined in matlab version which has already a "front-end" routine called. In doing so, one realizes that the matlab version is not yet f90.
+
+Thus trying to change interpos_linux64bits.f to interpos_f90.f90, one sees that first one needs the lapack in f90, also for the f90 files above.
+Indeed one still uses spgbtrf_s.f.
+
+Asking Minh one can compile with (if MKL is defined, which it is to: /usr/local/intel/mkl10.0/lib/em64t):
+ifort -L${MKL}   -lmkl_lapack -lmkl -lguide -lpthread
+
+Trying:
+ifort  -O3 -r8 -automatic -xT -parallel  -L${MKL}   -lmkl_lapack -lmkl -lguide -lpthread prec_rkind.f90 interpos.f90 cbsplgen0.f90 cbsplgenp0.f90 cbsplgen.f90 cbsplgenp.f90 cbfitbnd.f90 splibnd.f90 cbfitper.f90 spliper.f90 cbspltest_3.f90
+
+
+With spgbtrf_s.f90:(changing back to sgbt... instead of dgbt... in cbfitbnd.f90
+ifort  -O3 -r8 -automatic -xT -parallel prec_rkind.f90 interpos.f90 cbsplgen0.f90 cbsplgenp0.f90 cbsplgen.f90 cbsplgenp.f90 cbfitbnd.f90 splibnd.f90 cbfitper.f90 spliper.f90 cbspltest_3.f90 spgbtrf_s.f90
+
+OK f90 version spgbtrf_s.f90, add to svn
+
+-----------------------------------------------------------------------
+Now tries to create interpos_f90.f90 from interpos_linux64bits.f but in f90
+
+comments in matlab/README
+
+Any further comments there or in ../README for tags

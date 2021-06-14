@@ -1,0 +1,153 @@
+SUBROUTINE FINDINDICES(PXIN,KNIN,PXOUT,KNOUT,J1ST_XIN,JLAST_XIN,JLEFT,JLEFT_DEL,JRIGHT,JRIGHT_DEL,PALFA,KOPTINT)
+  USE prec_rkind
+  implicit none
+  REAL(RKIND) :: PXIN(KNIN), PXOUT(KNOUT), PALFA
+  INTEGER :: KNIN, KNOUT, J1ST_XIN(KNIN), JLAST_XIN(KNIN)
+  INTEGER :: JLEFT(2), JLEFT_DEL(2), JRIGHT(2), JRIGHT_DEL(2), KOPTINT
+  !
+  REAL(RKIND) :: ZLIM
+  INTEGER :: I, J, JFIRST, JLAST, JPREVIOUS, IALFA
+  !
+  !   FIND MATCHING INTERVALS
+  !   ASSUMES PXIN AND PXOUT MONOTONICALLY INCREASING
+  !
+  !   J POINTS FROM J1ST_XIN(I),JLAST_XIN(I) IN INTERVAL [XIN(I),XIN(I+1)]
+  !   FOR POINTS ON LEFT:    J=JLEFT(1) TO JLEFT(2)
+  !   FOR POINTS ON RIGHT:   J=JRIGHT(1) TO JRIGHT(2)
+  !
+  !   IF IOPTINT>20 (21, 31 OR 32), MIXED EXTRAPOLATION BETWEEN EDGE AND EDGE+ALPHA*H, WHERE H=X(EDGE)-X(EDGE-1)
+  !   THEN JLEFT, JRIGHT POINTS ARE OUTSIDE EDGE+ALPHA*H AND POINTS:
+  !   J=JLEFT_DEL(1),JLEFT_DEL(2) ARE WITHIN [XIN(1)-ALFA*H,XIN(1)[
+  !   J=JRIGHT_DEL(1),JRIGHT_DEL(2) ARE WITHIN ]XIN(KNIN),XIN(KNIN)+ALFA*H]
+  !
+  !-----------------------------------------------------------------------
+  !
+  !     1. PXOUT POINTS ON LEFT OF PXIN(1)
+  !
+  IALFA = 0
+  IF (ABS(KOPTINT) .GE. 21) IALFA = 1
+  !
+  IF (PXOUT(1) .LT. PXIN(1)) THEN
+    IF (IALFA .EQ. 0) THEN
+      DO J=2,KNOUT
+        IF (PXOUT(J) .GE. PXIN(1)) EXIT
+      END DO
+      JFIRST = J
+      JLEFT(1) = 1
+      JLEFT(2) = J-1
+      JLEFT_DEL(1) = -1
+      JLEFT_DEL(2) = -2
+    ELSE
+      ZLIM = PXIN(1) - PALFA*(PXIN(2)-PXIN(1))
+      IF (PXOUT(1) .LT. ZLIM) THEN
+        DO J=2,KNOUT
+          IF (PXOUT(J) .GE. ZLIM) EXIT
+        END DO
+        JLEFT(1) = 1
+        JLEFT(2) = J-1
+        JFIRST = J
+      ELSE
+        JLEFT(1) = -1
+        JLEFT(2) = -2
+        JFIRST = 1
+      END IF
+      IF (PXOUT(JFIRST) .LT. PXIN(1)) THEN
+        DO J=JFIRST+1,KNOUT
+          IF (PXOUT(J) .GE. PXIN(1)) EXIT
+        END DO
+        JLEFT_DEL(1) = JFIRST
+        JLEFT_DEL(2) = J-1
+        JFIRST = J
+      ELSE
+        JLEFT_DEL(1) = -1
+        JLEFT_DEL(2) = -2
+      END IF
+    END IF
+  ELSE
+    ! NO POINTS ON LEFT OF PXIN(1)
+    JFIRST = 1
+    JLEFT(1) = -1
+    JLEFT(2) = -2
+    JLEFT_DEL(1) = -1
+    JLEFT_DEL(2) = -2
+  END IF
+  !
+  !     2. PXOUT POINTS ON RIGHT OF PXIN(KNIN)
+  !
+  IF (PXOUT(KNOUT) .GT. PXIN(KNIN)) THEN
+    IF (IALFA .EQ. 0) THEN
+      DO J=KNOUT-1,1,-1
+        IF (PXOUT(J) .LE. PXIN(KNIN)) EXIT
+      END DO
+      JRIGHT(1)=J+1
+      JRIGHT(2)=KNOUT
+      JRIGHT_DEL(1) = -1
+      JRIGHT_DEL(2) = -2
+      JLAST = J
+    ELSE
+      ZLIM = PXIN(KNIN) + PALFA*(PXIN(KNIN)-PXIN(KNIN-1))
+      IF (PXOUT(KNOUT) .GT. ZLIM) THEN
+        DO J=KNOUT-1,1,-1
+          IF (PXOUT(J) .LE. ZLIM) EXIT
+        END DO
+        JRIGHT(1)=J+1
+        JRIGHT(2)=KNOUT
+        JLAST = J
+      ELSE
+        JRIGHT(1) = -1
+        JRIGHT(2) = -2
+        JLAST = KNOUT
+      END IF
+      IF (PXOUT(JLAST) .GT. PXIN(KNIN)) THEN
+        DO J=JLAST-1,1,-1
+          IF (PXOUT(J) .LE. PXIN(KNIN)) EXIT
+        END DO
+        JRIGHT_DEL(1)=J+1
+        JRIGHT_DEL(2)=JLAST
+        JLAST = J
+      ELSE
+        JRIGHT_DEL(1) = -1
+        JRIGHT_DEL(2) = -2
+      END IF
+    END IF
+  ELSE
+    ! NO POINTS ON RIGHT OF PXIN(KNIN)
+    JLAST = KNOUT
+    JRIGHT(1) = -1
+    JRIGHT(2) = -2
+    JRIGHT_DEL(1) = -1
+    JRIGHT_DEL(2) = -2
+  END IF
+  !
+  !     3. PXOUT(JFIRST:JLAST) POINTS ARE WITHIN [PXIN(1),PXIN(KNIN)]
+  !
+  IF (JFIRST .GT. JLAST) THEN
+    J1ST_XIN(1:KNIN-1) = -1
+    JLAST_XIN(1:KNIN-1) = -2
+    RETURN
+  END IF
+  !
+  JPREVIOUS = JFIRST
+  DO I=1,KNIN-1
+    ! FIND ALL PXOUT POINTS WITHIN PXIN(I),PXIN(I+1)
+    DO J=JPREVIOUS,JLAST
+      IF (PXOUT(J) .GT. PXIN(I+1)) EXIT
+    END DO
+    IF (J .GT. JPREVIOUS) THEN
+      J1ST_XIN(I) = JPREVIOUS
+      JLAST_XIN(I) = J-1
+    ELSE
+      J1ST_XIN(I) = -1
+      JLAST_XIN(I) = -2
+    END IF
+    JPREVIOUS = J
+    IF (JPREVIOUS .GT. JLAST) THEN
+      IF (I+1 .LE. KNIN-1) THEN
+        J1ST_XIN(I+1:KNIN-1) = -1
+        JLAST_XIN(I+1:KNIN-1) = -2
+      END IF
+      EXIT
+    END IF
+  END DO
+
+END SUBROUTINE findindices

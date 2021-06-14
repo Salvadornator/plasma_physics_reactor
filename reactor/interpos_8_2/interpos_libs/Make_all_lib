@@ -1,0 +1,11 @@
+make clean ; make interposg95
+make clean ; make interposifort
+#make clean ; make interpospgi
+#make clean ; make interpospgf95
+make clean ; make interpospgfortran
+
+make clean ; make interposg95_wolapack
+make clean ; make interposifort_wolapack
+#make clean ; make interpospgi_wolapack
+#make clean ; make interpospgf95_wolapack
+make clean ; make interposgfortran_wolapack

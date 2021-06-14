@@ -1,0 +1,36 @@
+ ifort  -O3 -r8 -automatic -xT -parallel  -L${MKL}   -lmkl_lapack -lmkl -lguide -lpthread -c prec_rkind.f90 interpos.f90 cbsplgen0.f90 cbsplgenp0.f90 cbsplgen.f90 cbsplgenp.f90 cbfitbnd.f90 splibnd.f90 cbfitper.f90 spliper.f90
+
+ar -rv  libinterpos.a cbsplgen0.o cbsplgenp0.o cbsplgen.o cbsplgenp.o cbfitbnd.o splibnd.o cbfitper.o spliper.o
+#ar -rv  libinterpos.a ../cbsplgen0.o ../cbsplgenp0.o ../cbsplgen.o ../cbsplgenp.o ../cbfitbnd.o ../splibnd.o ../cbfitper.o ../spliper.o
+
+#ifort  -O3 -r8 -automatic -xT -parallel  -L${MKL}   -lmkl_lapack -lmkl -lguide -lpthread ../cbsplgen0.o ../cbsplgenp0.o ../cbsplgen.o ../cbsplgenp.o ../cbfitbnd.o ../splibnd.o ../cbfitper.o ../spliper.o interpostest.f90
+
+#ifort  -O3 -r8 -automatic -xT -parallel ../cbsplgen0.f90 ../cbsplgenp0.f90 ../cbsplgen.f90 ../cbsplgenp.f90 ../cbfitbnd.f90 ../splibnd.f90 ../cbfitper.f90 ../spliper.f90 ../spgbtrf_s.f90 interpostest.f90
+
+#ifort  -O3 -r8 -automatic -xT -parallel  -L${MKL}   -lmkl_lapack -lmkl -lguide -lpthread ../cbsplgen0.f90 ../cbsplgenp0.f90 ../cbsplgen.f90 ../cbsplgenp.f90 ../cbfitbnd.f90 ../splibnd.f90 ../cbfitper.f90 ../spliper.f90  interpostest.f90
+
+#ifort  -O3 -r8 -automatic -xT -parallel interpostest.f90  -L.  -L${MKL}   -lmkl_lapack -lmkl -lguide -lpthread -linterpos
+
+g95 -c  -fPIC -fno-omit-frame-pointer  -L${MKL} -lmkl_lapack -lmkl -lguide -lpthread  prec_rkind.f90 interpos.f90 cbsplgen0.f90 cbsplgenp0.f90 cbsplgen.f90 cbsplgenp.f90 cbfitbnd.f90 splibnd.f90 cbfitper.f90 spliper.f90
+
+g95 -c  -fPIC -fno-omit-frame-pointer  prec_rkind.f90 interpos.f90 cbsplgen0.f90 cbsplgenp0.f90 cbsplgen.f90 cbsplgenp.f90 cbfitbnd.f90 splibnd.f90 cbfitper.f90 spliper.f90
+
+ar -rv libinterposg95.a cbfitbnd.o cbfitper.o splibnd.o spliper.o cbsplgen0.o cbsplgen.o cbsplgenp0.o cbsplgenp.o
+
+g95  -fPIC -fno-omit-frame-pointer interpostest.f90 -L${MKL} -L.. -lmkl_lapack -lmkl -lguide -lpthread -linterposg95 
+
+-----------------------------------------------------------------------
+Now with int, thus no splibnd.f90 but splibnda.f90 etc:
+g95 -c  -fPIC -fno-omit-frame-pointer  prec_rkind.f90 cbsplgen0.f90 cbsplgenp0.f90 cbsplgen.f90 cbsplgenp.f90 cbfitbnd.f90 cbfitper.f90 findindices.f90 findindicesper.f90 splipera.f90 splibnda.f90 intlinear.f90 intquadratic.f90 
+
+rm libinterposg95.a
+ar -rv libinterposg95.a cbsplgen0.o cbsplgenp0.o cbsplgen.o cbsplgenp.o cbfitbnd.o cbfitper.o findindices.o findindicesper.o splipera.o splibnda.o intlinear.o intquadratic.o
+
+cd test
+g95  -fPIC -fno-omit-frame-pointer interpostest.f90 -L${MKL} -L.. -lmkl_lapack -lmkl -lguide -lpthread -linterposg95 
+
+without lapack:
+add dpgbtrf_s.f90 in compilation and ar -rv dpgbtrf_s.o , then:
+g95  -fPIC -fno-omit-frame-pointer interpostest.f90 -L..  -linterposg95 
+
+
