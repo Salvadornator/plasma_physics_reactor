@@ -12,3 +12,4 @@ Every run will be saved in a directory called '_shotXXXXXX_'. The directory name
 
 All the input parameters are given in among lines 4 to 23. These values ajust all the equilibria for a shot. All the variables ending with 0 are parameters on the center of plasma (e.g. Te0). All the variables ending with 'ped' are parameters on the top of pedestal structure. The pedestal top is in the position 'psi_n = 1 - d_e' for electrons or 'psi_n = 1 - d_i' for ions, where 'd_e, d_i' are the pedestal width (in psi_n space) for electrons and ions. The variables ending with 'sep' are parameters on the separatrix (psi_n = 1).
 
+If there are any problems or bugs within the code, please send an e-mail to felipe.machado.salvador@usp.br describing what and where is the problem.
